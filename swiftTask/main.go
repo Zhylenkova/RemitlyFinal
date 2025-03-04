@@ -21,7 +21,7 @@ func main() {
 	// Initialize BoltDB
 	db, err := bbolt.Open(dbFile, 0600, nil)
 	if err != nil {
-		log.Fatal("Ошибка открытия базы данных:", err)
+		log.Fatal("Error opening the database:", err)
 	}
 	defer db.Close()
 
@@ -46,7 +46,7 @@ func main() {
 func populateDatabase(db *bbolt.DB, filePath string) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		log.Println("❌ Ошибка открытия CSV:", err)
+		log.Println("Error opening CSV", err)
 		return
 	}
 	defer file.Close()
@@ -56,16 +56,15 @@ func populateDatabase(db *bbolt.DB, filePath string) {
 	records, err := reader.ReadAll()
 
 	if err != nil {
-		log.Println("❌ Ошибка чтения CSV:", err)
+		log.Println("Error reading CSV:", err)
 		return
 	}
 
 	if len(records) == 0 {
-		log.Println("❌ Файл CSV пуст, загрузка данных невозможна")
+		log.Println("CSV is empty")
 		return
 	}
 
-	log.Printf("📄 Всего строк в CSV: %d\n", len(records))
 
 	db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(bucketName))
@@ -76,11 +75,10 @@ func populateDatabase(db *bbolt.DB, filePath string) {
 		count := 0
 		for i, record := range records {
 			if i == 0 {
-				continue // Пропускаем заголовки
+				continue
 			}
 
 			if len(record) < 6 {
-				log.Printf("❌ Пропущена строка %d: %v (не хватает данных)\n", i, record)
 				continue
 			}
 
@@ -95,21 +93,16 @@ func populateDatabase(db *bbolt.DB, filePath string) {
 
 			data, err := json.Marshal(swiftData)
 			if err != nil {
-				log.Printf("❌ Ошибка сериализации данных для строки %d: %v\n", i, err)
 				continue
 			}
 
 			// Вставляем в BoltDB
 			err = b.Put([]byte(record[1]), data)
 			if err != nil {
-				log.Printf("❌ Ошибка вставки в BoltDB: %v\n", err)
 			} else {
-				log.Printf("✅ Вставлен SWIFT-код: %s", record[1])
 				count++
 			}
 		}
-
-		log.Printf("✅ Загружено в базу записей: %d\n", count)
 		return nil
 	})
 }

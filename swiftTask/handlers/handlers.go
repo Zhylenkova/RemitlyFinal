@@ -27,19 +27,14 @@ type BranchesCode struct {
 	SwiftCode     string `json:"swiftCode"`
 }
 
-// HeadquarterResponse struct for headquarters with branches
-// type HeadquarterResponse struct {
-// 	SwiftCode
-// 	Branches []SwiftCode `json:"branches,omitempty"`
-// }
+
 
 type HeadquarterResponse struct {
 	SwiftCode
-	Branches []BranchesCode `json:"branches,omitempty"` // Використовуємо BranchesCode
+	Branches []BranchesCode `json:"branches,omitempty"` 
 }
 
-// Function to determine if the SWIFT code represents a headquarters
-// IsHeadquarter checks if a SWIFT code represents a headquarters
+
 func IsHeadquarter(swiftCode string) bool {
 	return len(swiftCode) >= 8 && strings.HasSuffix(swiftCode, "XXX")
 }
@@ -50,12 +45,12 @@ func GetSwiftCodeDetails(db *bbolt.DB, bucketName string) gin.HandlerFunc {
 		log.Printf("API Request Received: SWIFT Code: %s", swiftCode)
 
 		var swiftData SwiftCode
-		var branches []BranchesCode // Використовуємо BranchesCode замість SwiftCode
+		var branches []BranchesCode 
 
 		err := db.View(func(tx *bbolt.Tx) error {
 			b := tx.Bucket([]byte(bucketName))
 			if b == nil {
-				log.Println("❌ Bucket not found!")
+				log.Println("Bucket not found!")
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database bucket not found"})
 				return nil
 			}
@@ -85,10 +80,10 @@ func GetSwiftCodeDetails(db *bbolt.DB, bucketName string) gin.HandlerFunc {
 
 				b.ForEach(func(k, v []byte) error {
 					code := string(k)
-					if code[:8] == swiftCode[:8] && code != swiftCode { // Додаємо перевірку, щоб не включати головний офіс
+					if code[:8] == swiftCode[:8] && code != swiftCode { 
 						var branch SwiftCode
 						if err := json.Unmarshal(v, &branch); err == nil {
-							// Конвертуємо SwiftCode до BranchesCode, виключаючи CountryName
+
 							branches = append(branches, BranchesCode{
 								Address:       branch.Address,
 								BankName:      branch.BankName,
@@ -101,23 +96,23 @@ func GetSwiftCodeDetails(db *bbolt.DB, bucketName string) gin.HandlerFunc {
 					return nil
 				})
 
-				log.Printf("🏢 Found %d branches for HQ: %s", len(branches), swiftCode)
+			
 
 				c.JSON(http.StatusOK, HeadquarterResponse{
 					SwiftCode: swiftData,
-					Branches:  branches, // Використовуємо branches типу BranchesCode
+					Branches:  branches,
 				})
 				return nil
 			}
 
 			// If it's a branch, return only the branch details
-			log.Printf("🏢 Found Branch: %s", swiftCode)
+			log.Printf("Found Branch: %s", swiftCode)
 			c.JSON(http.StatusOK, swiftData)
 			return nil
 		})
 
 		if err != nil {
-			log.Println("❌ Database error:", err)
+			log.Println(" Database error:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		}
 	}
@@ -220,7 +215,7 @@ func AddSwiftCode(db *bbolt.DB, bucketName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var newSwiftCode SwiftCode
 		if err := c.ShouldBindJSON(&newSwiftCode); err != nil {
-			log.Println("❌ Error parsing request body:", err)
+			log.Println(" Error parsing request body:", err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 			return
 		}
@@ -228,32 +223,32 @@ func AddSwiftCode(db *bbolt.DB, bucketName string) gin.HandlerFunc {
 		err := db.Update(func(tx *bbolt.Tx) error {
 			b := tx.Bucket([]byte(bucketName))
 			if b == nil {
-				log.Println("❌ Bucket not found!")
+				log.Println(" Bucket not found!")
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database bucket not found"})
 				return nil
 			}
 
 			data, err := json.Marshal(newSwiftCode)
 			if err != nil {
-				log.Println("❌ Error serializing SWIFT code data:", err)
+				log.Println(" Error serializing SWIFT code data:", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error serializing data"})
 				return err
 			}
 
 			err = b.Put([]byte(newSwiftCode.SwiftCode), data)
 			if err != nil {
-				log.Println("❌ Error inserting SWIFT code into database:", err)
+				log.Println(" Error inserting SWIFT code into database:", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error inserting data"})
 				return err
 			}
 
-			log.Printf("✅ SWIFT code %s added successfully", newSwiftCode.SwiftCode)
+			log.Printf(" SWIFT code %s added successfully", newSwiftCode.SwiftCode)
 			c.JSON(http.StatusOK, gin.H{"message": "SWIFT code added successfully"})
 			return nil
 		})
 
 		if err != nil {
-			log.Println("❌ Database error:", err)
+			log.Println(" Database error:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		}
 	}
